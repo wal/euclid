@@ -9,20 +9,20 @@ library(qcc)
 DEFAULT_ACUTE_PERIOD = 7
 DEFAULT_CHRONIC_PERIOD = 28
 ACR_METHODS = c("Simple Rolling Average" = "simple_ra", 
-                "EWMA" = "ewma")
+                "EWMA Coupled" = "ewma_coupled",
+                "EWMA Un-Coupled" = "ewma_uncoupled")
 
 dataset <- read_csv('data/adam_sullivan_load_data.csv')
 dataset$date <- dmy(dataset$date)
 dataset$week <- week(dataset$date)
 athletes <- unique(dataset$athlete)
 
-unique(dataset$date)
 
 # Application UI
 ui <- fluidPage(
    
    # Application title
-   titlePanel("TITLE"),
+   titlePanel("Acute/Chronic Workload Ratio"),
    
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
@@ -60,25 +60,52 @@ server <- function(input, output) {
   simple_rolling_average_AC <- function(data, acute_period, chronic_period) {
     data %>% 
       mutate(
-        method = "simple_ra",
         acute = rollapply(load, acute_period, FUN = mean, na.rm = TRUE, fill = NA, align = "right"),
         chronic = rollapply(load, chronic_period, FUN = mean, na.rm = TRUE, fill = NA, align = "right"),
         acr = acute / chronic) %>%
       gather(statistic, value, acute, chronic, acr)
   }
   
-  ewma_AC <- function(data, acute_period, chronic_period) {
-    #mutate(Chronic_weighted = Player.Load *0.07 + (1-0.07) * lag(Chronic),
-    #       Acute_weighted = Player.Load * 0.25 + (1-0.25)* lag(Acute))
+  ewma_coupled_AC <- function(data, acute_period, chronic_period) {
+    acute_alpha <- 2/(acute_period+1)
+    chronic_alpha <- 2/(chronic_period+1)
     
-    acute_alpha <- 0.25 #2/(acute_period+1)
-    chronic_alpha <- 0.09 #2/(chronic_period+1)
+    data$acute <- NA
+    data$chronic <- NA
+    
+    data$acute[1] <- data$load[1]
+    data$chronic[1] <- data$load[1]
+
+    for(i in (2:dim(data)[1])){
+      data$acute[i] <- data$load[i] * acute_alpha + (1-acute_alpha) * data$acute[i-1]
+      data$chronic[i] <- data$load[i] * chronic_alpha + (1-chronic_alpha) * data$chronic[i-1]
+    }
     
     data %>%
       mutate(
-        method = "ewma",
-        acute = load * acute_alpha + (1-acute_alpha) * lag(load),
-        chronic = load * chronic_alpha + (1-chronic_alpha) * lag(load),
+        acr = acute / chronic) %>%
+      gather(statistic, value, acute, chronic, acr)
+  }
+  
+  ewma_uncoupled_AC <- function(data, acute_period, chronic_period) {
+    acute_alpha <- 2/(acute_period+1)
+    chronic_alpha <- 2/(chronic_period+1)
+    
+    data$acute <- NA
+    data$chronic <- NA
+    
+    data$acute[1] <- data$load[1]
+    data$chronic[1:8] <- mean(data$load[1:7])
+    
+    for(i in (2:dim(data)[1])){
+      data$acute[i] <- data$load[i] * acute_alpha + (1-acute_alpha) * data$acute[i-1]
+      if(i > 8) {
+        data$chronic[i] <- data$load[i-7] * chronic_alpha + (1-chronic_alpha) * data$chronic[i-8]
+      }
+    }
+    
+    data %>%
+      mutate(
         acr = acute / chronic) %>%
       gather(statistic, value, acute, chronic, acr)
   }
@@ -90,9 +117,11 @@ server <- function(input, output) {
     chronic_period <- chronic_period()
     
     if(analysis_type == "simple_ra") {
-      simple_rolling_average_AC(data, acute_period, chronic_period)
+      simple_rolling_average_AC(data, acute_period, chronic_period) %>% mutate(method = analysis_type)
+    } else if (analysis_type == "ewma_coupled") {
+      ewma_coupled_AC(data, acute_period, chronic_period) %>% mutate(method = analysis_type)
     } else {
-      ewma_AC(data, acute_period, chronic_period)
+      ewma_uncoupled_AC(data, acute_period, chronic_period) %>% mutate(method = analysis_type)
     } 
   }
   
@@ -109,7 +138,8 @@ server <- function(input, output) {
    })
    
    output$acrData <- renderDataTable({
-     analysed_data() %>% spread(statistic, value)
+     analysed_data() %>% 
+       spread(statistic, value)
    })
 }
 
