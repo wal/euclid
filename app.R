@@ -5,6 +5,9 @@ library(tidyquant)
 library(purrr)
 library(zoo)
 library(qcc)
+library(ggExtra)
+library(ggpubr)
+library(shinythemes)
 
 DEFAULT_ACUTE_PERIOD = 7
 DEFAULT_CHRONIC_PERIOD = 28
@@ -20,7 +23,7 @@ athletes <- unique(dataset$athlete)
 
 
 # Application UI
-ui <- fluidPage(
+ui <- fluidPage(theme = shinytheme("flatly"),
    
    # Application title
    titlePanel("Acute/Chronic Workload Ratio"),
@@ -35,12 +38,27 @@ ui <- fluidPage(
                     max = 42, 
                     step = 7, 
                     value = c(DEFAULT_ACUTE_PERIOD, DEFAULT_CHRONIC_PERIOD)),
-        checkboxGroupInput("methods", h4("Analysis Method"), ACR_METHODS, selected=ACR_METHODS[1])
+        checkboxGroupInput("methods", h4("Analysis Method"), ACR_METHODS, selected=ACR_METHODS)
         ),
       mainPanel(
-        plotOutput("acrPlot"),
-        plotOutput("acutePlot"),
-        plotOutput("chronicPlot")
+        tabsetPanel(
+          tabPanel("Acute / Chronic Ratio",
+            plotOutput("acrPlot"),
+            hr(),hr(),
+            plotOutput("acutePlot"),
+            hr(),hr(),
+            plotOutput("chronicPlot")
+          ),
+          tabPanel("Correlation",
+            plotOutput("simple_ra_coupled_correlationPlot"),
+            hr(),hr(),
+            plotOutput("simple_ra_uncoupled_correlationPlot"),
+            hr(),hr(),
+            plotOutput("ewma_coupled_correlationPlot"),
+            hr(),hr(),
+            plotOutput("ewma_uncoupled_correlationPlot")
+          )
+        )
       )
    )
 )
@@ -147,21 +165,97 @@ server <- function(input, output) {
      data <- analysed_data() %>% filter(statistic == 'acr')
      ggplot(data, aes(date, value, color = method)) + 
        geom_line() + 
-       theme_minimal()
+       xlab(NULL) + ylab(NULL)+
+       theme_minimal() +
+       ggtitle("Acute/Chronic Ratio", subtitle = "bish bash bosh")  +
+       theme(plot.title = element_text(hjust = 0.5, vjust = -0.5),
+             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5))
    })
    
    output$acutePlot <- renderPlot({
      data <- analysed_data() %>% filter(statistic == 'acute')
      ggplot(data, aes(date, value, color = method)) + 
        geom_line() + 
-       theme_minimal()
+       theme_minimal() +
+       ggtitle("Acute Workload")  +
+       theme(plot.title = element_text(hjust = 0.5, vjust = -0.5),
+             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5))
    })
    
    output$chronicPlot <- renderPlot({
      data <- analysed_data() %>% filter(statistic == 'chronic')
      ggplot(data, aes(date, value, color = method)) + 
        geom_line() + 
-       theme_minimal()
+       theme_minimal() +
+       ggtitle("Chronic Workload")  +
+       theme(plot.title = element_text(hjust = 0.5, vjust = -0.5),
+             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5))
+   })
+   
+   output$simple_ra_coupled_correlationPlot <- renderPlot({
+     data <- analysed_data() %>% 
+       filter(method == 'simple_ra_coupled') %>%
+       spread(statistic, value)
+    
+     plot <- ggplot(data, aes(acute, chronic, color = acr)) + 
+       geom_point() +
+       geom_smooth(method = "lm", se = FALSE) +
+       stat_cor(method = "pearson") + 
+       theme_minimal() +
+       ggtitle("Simpe Rolling Average - Coupled ", subtitle = "Acute v Chronic")  +
+       theme(plot.title = element_text(hjust = 0.5, vjust = -0.5),
+             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5))
+     
+     ggMarginal(plot, type = "histogram")
+   })
+   
+   output$simple_ra_uncoupled_correlationPlot <- renderPlot({
+     data <- analysed_data() %>% 
+       filter(method == 'simple_ra_uncoupled') %>%
+       spread(statistic, value)
+     plot <- ggplot(data, aes(acute, chronic, color = acr)) + 
+       geom_point() +
+       geom_smooth(method = "lm", se = FALSE) +
+       stat_cor(method = "pearson") + 
+       theme_minimal() +
+       ggtitle("Simpe Rolling Average - Uncoupled ", subtitle = "Acute v Chronic")  +
+       theme(plot.title = element_text(hjust = 0.5, vjust = -0.5),
+             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5))
+     
+     ggMarginal(plot, type = "histogram")
+   })
+   
+   output$ewma_coupled_correlationPlot <- renderPlot({
+     data <- analysed_data() %>% 
+       filter(method == 'ewma_coupled') %>%
+       spread(statistic, value)
+     plot <- ggplot(data, aes(acute, chronic, color = acr)) + 
+       geom_point() +
+       geom_smooth(method = "lm", se = FALSE) +
+       stat_cor(method = "pearson") + 
+       theme_minimal() +
+       ggtitle("EWMA Coupled ", subtitle = "Acute v Chronic")  +
+       theme(plot.title = element_text(hjust = 0.5, vjust = -0.5),
+             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5))
+     
+     ggMarginal(plot, type = "histogram")
+   })
+   
+   output$ewma_uncoupled_correlationPlot <- renderPlot({
+     data <- analysed_data() %>% 
+       filter(method == 'ewma_uncoupled') %>%
+       spread(statistic, value)
+     
+     plot <- ggplot(data, aes(acute, chronic, color = acr)) + 
+       geom_point() +
+       geom_smooth(method = "lm", se = FALSE) +
+       stat_cor(method = "pearson") + 
+       theme_minimal() +
+       ggtitle("EWMA Uncoupled ", subtitle = "Acute v Chronic")  +
+       theme(plot.title = element_text(hjust = 0.5, vjust = -0.5),
+             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5))
+     
+     ggMarginal(plot, type = "histogram")
    })
    
    output$acrData <- renderDataTable({
