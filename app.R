@@ -38,6 +38,8 @@ ui <- fluidPage(
         ),
       mainPanel(
         plotOutput("acrPlot"),
+        plotOutput("acutePlot"),
+        plotOutput("chronicPlot"),
         dataTableOutput("acrData")
       )
    )
@@ -132,6 +134,20 @@ server <- function(input, output) {
 
    output$acrPlot <- renderPlot({
      data <- analysed_data() %>% filter(statistic == 'acr')
+     ggplot(data, aes(date, value, color = method)) + 
+       geom_line() + 
+       theme_minimal()
+   })
+   
+   output$acutePlot <- renderPlot({
+     data <- analysed_data() %>% filter(statistic == 'acute')
+     ggplot(data, aes(date, value, color = method)) + 
+       geom_line() + 
+       theme_minimal()
+   })
+   
+   output$chronicPlot <- renderPlot({
+     data <- analysed_data() %>% filter(statistic == 'chronic')
      ggplot(data, aes(date, value, color = method)) + 
        geom_line() + 
        theme_minimal()
