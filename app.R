@@ -23,10 +23,10 @@ athletes <- unique(dataset$athlete)
 
 
 # Application UI
-ui <- fluidPage(theme = shinytheme("flatly"),
+ui <- fluidPage(theme = shinytheme("sandstone"),
    
    # Application title
-   titlePanel("Acute/Chronic Workload Ratio"),
+   titlePanel("Acute/Chronic Workload Ratio - ** DRAFT ** DO NOT SHARE"),
    
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
@@ -57,7 +57,9 @@ ui <- fluidPage(theme = shinytheme("flatly"),
             plotOutput("ewma_coupled_correlationPlot"),
             hr(),hr(),
             plotOutput("ewma_uncoupled_correlationPlot")
-          )
+          ),
+          tabPanel("Raw Data", dataTableOutput("raw_dataTable")),
+          tabPanel("References", p("List references here"))
         )
       )
    )
@@ -157,7 +159,6 @@ server <- function(input, output) {
   }
   
   analysed_data <- reactive({
-    print(input$methods)
     input$methods %>% map(perform_analysis) %>% reduce(rbind)
   })
 
@@ -167,78 +168,96 @@ server <- function(input, output) {
        geom_line() + 
        xlab(NULL) + ylab(NULL)+
        theme_minimal() +
-       ggtitle("Acute/Chronic Ratio", subtitle = "bish bash bosh")  +
-       theme(plot.title = element_text(hjust = 0.5, vjust = -0.5),
-             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5))
+       ggtitle("Acute/Chronic Ratio")  +
+       theme(plot.title = element_text(hjust = 0.5, vjust = -0.5)) +
+       theme(legend.position="bottom") +
+       theme(legend.title=element_blank()) +
+       theme(title =element_text(size=12, face='bold'))
    })
    
    output$acutePlot <- renderPlot({
      data <- analysed_data() %>% filter(statistic == 'acute')
      ggplot(data, aes(date, value, color = method)) + 
        geom_line() + 
+       xlab(NULL) + ylab(NULL)+
        theme_minimal() +
        ggtitle("Acute Workload")  +
        theme(plot.title = element_text(hjust = 0.5, vjust = -0.5),
-             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5))
+             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5)) +
+       theme(legend.position="bottom") +
+       theme(legend.title=element_blank()) +
+       theme(title =element_text(size=12, face='bold'))
    })
    
    output$chronicPlot <- renderPlot({
      data <- analysed_data() %>% filter(statistic == 'chronic')
      ggplot(data, aes(date, value, color = method)) + 
-       geom_line() + 
-       theme_minimal() +
        ggtitle("Chronic Workload")  +
+       geom_line() + 
+       xlab(NULL) + ylab(NULL)+
+       theme_minimal() +
        theme(plot.title = element_text(hjust = 0.5, vjust = -0.5),
-             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5))
+             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5)) +
+       theme(legend.position="bottom") +
+       theme(legend.title=element_blank()) +
+       theme(title =element_text(size=12, face='bold'))
    })
    
    output$simple_ra_coupled_correlationPlot <- renderPlot({
      data <- analysed_data() %>% 
        filter(method == 'simple_ra_coupled') %>%
        spread(statistic, value)
-    
+     
      plot <- ggplot(data, aes(acute, chronic, color = acr)) + 
+       ggtitle("Simpe Rolling Average - Coupled ", subtitle = "Acute v Chronic")  +
        geom_point() +
        geom_smooth(method = "lm", se = FALSE) +
        stat_cor(method = "pearson") + 
        theme_minimal() +
-       ggtitle("Simpe Rolling Average - Coupled ", subtitle = "Acute v Chronic")  +
+       scale_colour_gradient2(guide = FALSE, high = "red", low = "yellow", mid = "white") +
        theme(plot.title = element_text(hjust = 0.5, vjust = -0.5),
-             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5))
+             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5)) +
+       theme(title =element_text(size=12, face='bold'))
      
-     ggMarginal(plot, type = "histogram")
+     ggMarginal(plot, type = "histogram", margins = c("y"), alpha = 0.75)
    })
    
    output$simple_ra_uncoupled_correlationPlot <- renderPlot({
      data <- analysed_data() %>% 
        filter(method == 'simple_ra_uncoupled') %>%
        spread(statistic, value)
+     
      plot <- ggplot(data, aes(acute, chronic, color = acr)) + 
+       ggtitle("Simpe Rolling Average - Uncoupled ", subtitle = "Acute v Chronic")  +
        geom_point() +
        geom_smooth(method = "lm", se = FALSE) +
        stat_cor(method = "pearson") + 
        theme_minimal() +
-       ggtitle("Simpe Rolling Average - Uncoupled ", subtitle = "Acute v Chronic")  +
+       scale_colour_gradient2(guide = FALSE, high = "red", low = "yellow", mid = "white") +
        theme(plot.title = element_text(hjust = 0.5, vjust = -0.5),
-             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5))
+             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5)) +
+       theme(title =element_text(size=12, face='bold'))
      
-     ggMarginal(plot, type = "histogram")
+     ggMarginal(plot, type = "histogram", margins = c("y"), alpha = 0.75)
    })
    
    output$ewma_coupled_correlationPlot <- renderPlot({
      data <- analysed_data() %>% 
        filter(method == 'ewma_coupled') %>%
        spread(statistic, value)
+     
      plot <- ggplot(data, aes(acute, chronic, color = acr)) + 
+       ggtitle("EWMA Coupled ", subtitle = "Acute v Chronic")  +
        geom_point() +
        geom_smooth(method = "lm", se = FALSE) +
        stat_cor(method = "pearson") + 
        theme_minimal() +
-       ggtitle("EWMA Coupled ", subtitle = "Acute v Chronic")  +
+       scale_colour_gradient2(guide = FALSE, high = "red", low = "yellow", mid = "white") +
        theme(plot.title = element_text(hjust = 0.5, vjust = -0.5),
-             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5))
+             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5)) +
+       theme(title =element_text(size=12, face='bold'))
      
-     ggMarginal(plot, type = "histogram")
+     ggMarginal(plot, type = "histogram", margins = c("y"), alpha = 0.75)
    })
    
    output$ewma_uncoupled_correlationPlot <- renderPlot({
@@ -247,18 +266,20 @@ server <- function(input, output) {
        spread(statistic, value)
      
      plot <- ggplot(data, aes(acute, chronic, color = acr)) + 
+       ggtitle("EWMA Uncoupled ", subtitle = "Acute v Chronic")  +
        geom_point() +
        geom_smooth(method = "lm", se = FALSE) +
        stat_cor(method = "pearson") + 
        theme_minimal() +
-       ggtitle("EWMA Uncoupled ", subtitle = "Acute v Chronic")  +
+       scale_colour_gradient2(guide = FALSE, high = "red", low = "yellow", mid = "white") +
        theme(plot.title = element_text(hjust = 0.5, vjust = -0.5),
-             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5))
+             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5)) +
+       theme(title =element_text(size=12, face='bold'))
      
-     ggMarginal(plot, type = "histogram")
+     ggMarginal(plot, type = "histogram", margins = c("y"), alpha = 0.75)
    })
    
-   output$acrData <- renderDataTable({
+   output$raw_dataTable <- renderDataTable({
      analysed_data() %>% 
        spread(statistic, value)
    })
