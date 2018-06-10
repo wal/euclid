@@ -21,7 +21,9 @@ DATASETS = c("sRPE Load (AS)", "STATSports")
 
 source('acr_calculations.R')
 
+################
 # Application UI
+################
 ui <- fluidPage(theme = shinytheme("sandstone"),
    
    # Application title
@@ -68,8 +70,14 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
    )
 )
 
+######################
+# Application Server
+######################
 server <- function(input, output) {
 
+  # Shiny Reactive expressions - https://shiny.rstudio.com/tutorial/written-tutorial/lesson6/
+  
+  ## Load the relevant dataset
   dataset <- reactive({
     
     data <- NULL
@@ -88,40 +96,53 @@ server <- function(input, output) {
     data
   })
 
+  ## Discover what metrics are possible for a given dataset
   metrics <- reactive({
     select_if(dataset(), is.numeric) %>% names()
   })
   
+  ## Discover what athletes are possible for a given dataset
   athletes <- reactive({
     unique(dataset()$athlete)
   })
   
+  ## Return the acute period as selected by the user
   acute_period <- reactive({
     input$ac_periods[1]
   })
   
+  ## Return the chronic period as selected by the user
   chronic_period <- reactive({
     input$ac_periods[2]
   })
   
-  filtered_data <- reactive({
-    dataset() %>% filter(athlete == input$athlete)
-  })
-  
+  ## Return the metric name as selected by the user
   metric_name <- reactive({
     input$metric_name
   })
   
-  perform_analysis <- function(x) {
-    
-    analysis_type <- x
+  ## Filter the dataset by the athlete as selected by the user
+  filtered_data <- reactive({
+    dataset() %>% filter(athlete == input$athlete)
+  })
+  
+  ## For each of the selected analysis methods
+  ## 1. Conduct the analysis (using purrr::map)
+  ## 2. Combine together the result data.frames from each of the analyseses (each distingushable by a new method column) 
+  analysed_data <- reactive({
+    input$methods %>% map(perform_analysis) %>% reduce(rbind)
+  })
+  
+  ## Perform the relevant ACR analysis from the filtered data 
+  ## will return an new data.frame with acute, chronic and acr columns added
+  ##
+  perform_analysis <- function(analysis_type) {
     data <- filtered_data()
     acute_period <- acute_period()
     chronic_period <- chronic_period()
     
     metric <- metric_name()
 
-    print("performing analysis")
     if(analysis_type == "simple_ra_coupled") {
       simple_rolling_average_coupled(data, metric, acute_period, chronic_period) %>% mutate(method = analysis_type)
     } else if(analysis_type == "simple_ra_uncoupled") {
@@ -133,18 +154,18 @@ server <- function(input, output) {
     } 
   }
   
-  analysed_data <- reactive({
-    input$methods %>% map(perform_analysis) %>% reduce(rbind)
-  })
-
+  ## UI for the metrics selection (depends on the selected dataset)
   output$metricSelection <- renderUI({
     selectInput("metric_name", h4("Metric"), choices = metrics(), selected = head(metrics(), 1))
   })
   
+  ## UI for the athletes selection (depends on the selected dataset)
   output$athleteSelection <- renderUI({
     selectInput("athlete", h4("Athlete"), choices = athletes(), selected = head(athletes(), 1))
   })
   
+  
+  ## The Acute/Chronic ratio plot. Each analysis represented by a different color
    output$acrPlot <- renderPlot({
      data <- analysed_data() %>% filter(statistic == 'acr')
      ggplot(data, aes(date, value, color = method)) + 
@@ -157,7 +178,8 @@ server <- function(input, output) {
        theme(legend.title=element_blank()) +
        theme(title =element_text(size=12, face='bold'))
    })
-   
+  
+   ## The Acute workload plot. Each analysis represented by a different color 
    output$acutePlot <- renderPlot({
      data <- analysed_data() %>% filter(statistic == 'acute')
      ggplot(data, aes(date, value, color = method)) + 
@@ -172,6 +194,7 @@ server <- function(input, output) {
        theme(title =element_text(size=12, face='bold'))
    })
    
+   ## The Chronic workload plot. Each analysis represented by a different color 
    output$chronicPlot <- renderPlot({
      data <- analysed_data() %>% filter(statistic == 'chronic')
      ggplot(data, aes(date, value, color = method)) + 
@@ -186,6 +209,7 @@ server <- function(input, output) {
        theme(title =element_text(size=12, face='bold'))
    })
    
+   ## Correlation plot for Simple Rolling Average - Coupled
    output$simple_ra_coupled_correlationPlot <- renderPlot({
      data <- analysed_data() %>% 
        filter(method == 'simple_ra_coupled') %>%
@@ -205,6 +229,7 @@ server <- function(input, output) {
      ggMarginal(plot, type = "histogram", margins = c("y"), alpha = 0.75)
    })
    
+   ## Correlation plot for Simple Rolling Average - Uncoupled
    output$simple_ra_uncoupled_correlationPlot <- renderPlot({
      data <- analysed_data() %>% 
        filter(method == 'simple_ra_uncoupled') %>%
@@ -224,6 +249,7 @@ server <- function(input, output) {
      ggMarginal(plot, type = "histogram", margins = c("y"), alpha = 0.75)
    })
    
+   ## Correlation plot for EWMA - Coupled
    output$ewma_coupled_correlationPlot <- renderPlot({
      data <- analysed_data() %>% 
        filter(method == 'ewma_coupled') %>%
@@ -243,6 +269,7 @@ server <- function(input, output) {
      ggMarginal(plot, type = "histogram", margins = c("y"), alpha = 0.75)
    })
    
+   ## Correlation plot for EWMA - Uncoupled
    output$ewma_uncoupled_correlationPlot <- renderPlot({
      data <- analysed_data() %>% 
        filter(method == 'ewma_uncoupled') %>%
@@ -262,6 +289,7 @@ server <- function(input, output) {
      ggMarginal(plot, type = "histogram", margins = c("y"), alpha = 0.75)
    })
    
+   ## Raw data plot, alternative weeks are colored to show weekly differences
    output$raw_dataPlot <- renderPlot({
      data <- analysed_data() %>% spread(statistic, value)
      data$week <- week(data$date) %% 2
@@ -272,6 +300,7 @@ server <- function(input, output) {
        guides(fill = FALSE)
    })
    
+   ## Raw data table
    output$raw_dataTable <- renderDataTable({
      analysed_data() %>% 
        spread(statistic, value)
