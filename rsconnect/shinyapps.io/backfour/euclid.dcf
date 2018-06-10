@@ -5,6 +5,6 @@ account: backfour
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 357678
-bundleId: 1421389
+bundleId: 1421505
 url: https://backfour.shinyapps.io/euclid/
-when: 1528648313.56034
+when: 1528658084.26244
