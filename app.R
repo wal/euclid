@@ -8,6 +8,7 @@ library(qcc)
 library(ggExtra)
 library(ggpubr)
 library(shinythemes)
+library(shinycssloaders)
 
 DEFAULT_ACUTE_PERIOD = 7
 DEFAULT_CHRONIC_PERIOD = 28
@@ -43,23 +44,23 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
       mainPanel(
         tabsetPanel(
           tabPanel("Acute / Chronic Ratio",
-            plotOutput("acrPlot"),
-            hr(),hr(),
-            plotOutput("acutePlot"),
-            hr(),hr(),
-            plotOutput("chronicPlot")
+                   withSpinner(plotOutput("acrPlot")),
+                   hr(),hr(),
+                   withSpinner(plotOutput("acutePlot")),
+                   hr(),hr(),
+                   withSpinner(plotOutput("chronicPlot"))
           ),
           tabPanel("Correlation",
-            plotOutput("simple_ra_coupled_correlationPlot"),
-            hr(),hr(),
-            plotOutput("simple_ra_uncoupled_correlationPlot"),
-            hr(),hr(),
-            plotOutput("ewma_coupled_correlationPlot"),
-            hr(),hr(),
-            plotOutput("ewma_uncoupled_correlationPlot")
+                   withSpinner(plotOutput("simple_ra_coupled_correlationPlot")),
+                   hr(),hr(),
+                   withSpinner(plotOutput("simple_ra_uncoupled_correlationPlot")),
+                   hr(),hr(),
+                   withSpinner(plotOutput("ewma_coupled_correlationPlot")),
+                   hr(),hr(),
+                   withSpinner(plotOutput("ewma_uncoupled_correlationPlot"))
           ),
           tabPanel("Raw Data", 
-                   plotOutput("raw_dataPlot"),
+                   withSpinner(plotOutput("raw_dataPlot")),
                    dataTableOutput("raw_dataTable")),
           tabPanel("References", p("List references here"))
         )
