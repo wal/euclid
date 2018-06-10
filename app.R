@@ -15,16 +15,8 @@ ACR_METHODS = c("Simple Rolling Average Coupled" = "simple_ra_coupled",
                 "Simple Rolling Average Uncoupled" = "simple_ra_uncoupled", 
                 "EWMA Coupled" = "ewma_coupled",
                 "EWMA Uncoupled" = "ewma_uncoupled")
-LOAD_METADATA_COLUMNS <- c("date", "athlete")
 
-dataset <- read_csv('data/adam_sullivan_load_data.csv')
-metrics <- names(dataset)[!names(dataset) %in% LOAD_METADATA_COLUMNS]
-dataset$date <- dmy(dataset$date)
-dataset$week <- week(dataset$date)
-athletes <- unique(dataset$athlete)
-
-
-
+DATASETS = c("sRPE Load (AS)", "STATSports")
 
 source('acr_calculations.R')
 
@@ -32,13 +24,14 @@ source('acr_calculations.R')
 ui <- fluidPage(theme = shinytheme("sandstone"),
    
    # Application title
-   titlePanel("Acute/Chronic Workload Ratio - ** DRAFT ** DO NOT SHARE"),
+   titlePanel("Acute/Chronic Workload Ratio"),
    
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
       sidebarPanel(
-        selectInput("metric_name", h4("Metric"), choices = metrics, selected = head(metrics, 1)),
-        selectInput("athlete", h4("Athlete"), choices = athletes, selected = head(athletes, 1)),
+        selectInput("dataset", h4("Dataset"), choices = DATASETS, selected = head(DATASETS, 1)),
+        uiOutput("metricSelection"),
+        uiOutput("athleteSelection"),
         sliderInput("ac_periods", 
                     h4("Acute - Chronic Periods (days)"), 
                     min = 7, 
@@ -74,6 +67,44 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
 
 server <- function(input, output) {
 
+  dataset <- reactive({
+    
+    data <- NULL
+    
+    if(input$dataset == "sRPE Load (AS)") {
+      print("Loading from SRPE Dataset")
+      data <- read_csv("data/adam_sullivan_load_data.csv")
+    } else {
+      print("Loading Statsports Dataset")
+      data <- read_csv("data/statsports.csv")
+      data <- data %>% rename(date = `Session Date`, athlete = `Player Display Name`)
+    }
+    
+    data$date <- dmy(data$date)    
+
+    data
+  })
+
+  metrics <- reactive({
+    metric_names <- select_if(dataset(), is.numeric) %>% names()
+    
+#    if(input$dataset == "sRPE Load (AS)") {
+ #     print("Using SRPE Metric Names")
+  #    metric_names <- names(dataset())[!names(dataset()) %in% c("date", "athlete")]
+   # } else {
+  #    print("Using Statsports Metric Names")
+  #    metric_names <- names(dataset())[!names(dataset()) %in% c("Player Display Name", "Session Date")]
+  #  }
+    
+    print(paste("Using metric names: ", metric_names))
+    
+    metric_names
+  })
+  
+  athletes <- reactive({
+    unique(dataset()$athlete)
+  })
+  
   acute_period <- reactive({
     input$ac_periods[1]
   })
@@ -83,7 +114,7 @@ server <- function(input, output) {
   })
   
   filtered_data <- reactive({
-    dataset %>% filter(athlete == input$athlete)
+    dataset() %>% filter(athlete == input$athlete)
   })
   
   metric_name <- reactive({
@@ -91,13 +122,15 @@ server <- function(input, output) {
   })
   
   perform_analysis <- function(x) {
+    
     analysis_type <- x
     data <- filtered_data()
     acute_period <- acute_period()
     chronic_period <- chronic_period()
     
     metric <- metric_name()
-    
+
+    print("performing analysis")
     if(analysis_type == "simple_ra_coupled") {
       simple_rolling_average_coupled(data, metric, acute_period, chronic_period) %>% mutate(method = analysis_type)
     } else if(analysis_type == "simple_ra_uncoupled") {
@@ -113,8 +146,17 @@ server <- function(input, output) {
     input$methods %>% map(perform_analysis) %>% reduce(rbind)
   })
 
+  output$metricSelection <- renderUI({
+    selectInput("metric_name", h4("Metric"), choices = metrics(), selected = head(metrics(), 1))
+  })
+  
+  output$athleteSelection <- renderUI({
+    selectInput("athlete", h4("Athlete"), choices = athletes(), selected = head(athletes(), 1))
+  })
+  
    output$acrPlot <- renderPlot({
      data <- analysed_data() %>% filter(statistic == 'acr')
+     print(glimpse(data))
      ggplot(data, aes(date, value, color = method)) + 
        geom_line() + 
        xlab(NULL) + ylab(NULL)+
