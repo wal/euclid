@@ -58,7 +58,9 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
             hr(),hr(),
             plotOutput("ewma_uncoupled_correlationPlot")
           ),
-          tabPanel("Raw Data", dataTableOutput("raw_dataTable")),
+          tabPanel("Raw Data", 
+                   plotOutput("raw_dataPlot"),
+                   dataTableOutput("raw_dataTable")),
           tabPanel("References", p("List references here"))
         )
       )
@@ -270,6 +272,17 @@ server <- function(input, output) {
        theme(title =element_text(size=12, face='bold'))
      
      ggMarginal(plot, type = "histogram", margins = c("y"), alpha = 0.75)
+   })
+   
+   output$raw_dataPlot <- renderPlot({
+     data <- analysed_data() %>% spread(statistic, value)
+     data$week <- week(data$date) %% 2
+     
+     
+     ggplot(data, aes_string("date", paste0("`",metric_name(),"`"), fill = "week")) + 
+       geom_bar(stat = "identity") +
+       theme_minimal() +
+       guides(fill = FALSE)
    })
    
    output$raw_dataTable <- renderDataTable({
