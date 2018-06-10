@@ -15,12 +15,18 @@ ACR_METHODS = c("Simple Rolling Average Coupled" = "simple_ra_coupled",
                 "Simple Rolling Average Uncoupled" = "simple_ra_uncoupled", 
                 "EWMA Coupled" = "ewma_coupled",
                 "EWMA Uncoupled" = "ewma_uncoupled")
+LOAD_METADATA_COLUMNS <- c("date", "athlete")
 
 dataset <- read_csv('data/adam_sullivan_load_data.csv')
+metrics <- names(dataset)[!names(dataset) %in% LOAD_METADATA_COLUMNS]
 dataset$date <- dmy(dataset$date)
 dataset$week <- week(dataset$date)
 athletes <- unique(dataset$athlete)
 
+
+
+
+source('acr_calculations.R')
 
 # Application UI
 ui <- fluidPage(theme = shinytheme("sandstone"),
@@ -31,6 +37,7 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
       sidebarPanel(
+        selectInput("metric_name", h4("Metric"), choices = metrics, selected = head(metrics, 1)),
         selectInput("athlete", h4("Athlete"), choices = athletes, selected = head(athletes, 1)),
         sliderInput("ac_periods", 
                     h4("Acute - Chronic Periods (days)"), 
@@ -79,67 +86,9 @@ server <- function(input, output) {
     dataset %>% filter(athlete == input$athlete)
   })
   
-  simple_rolling_average_coupled <- function(data, acute_period, chronic_period) {
-    data %>% 
-      mutate(
-        acute = rollapply(load, acute_period, FUN = mean, na.rm = TRUE, fill = NA, align = "right"),
-        chronic = rollapply(load, chronic_period, FUN = mean, na.rm = TRUE, fill = NA, align = "right"),
-        acr = acute / chronic) %>%
-      gather(statistic, value, acute, chronic, acr)
-  }
-  
-  simple_rolling_average_uncoupled <- function(data, acute_period, chronic_period) {
-    data %>% 
-      mutate(
-        acute = rollapply(load, acute_period, FUN = mean, na.rm = TRUE, fill = NA, align = "right"),
-        chronic = rollapply(load, c(list(-acute_period:-(chronic_period+acute_period)), -chronic_period), FUN = mean, na.rm = TRUE, fill = NA, align = "right"),
-        acr = acute / chronic) %>%
-      gather(statistic, value, acute, chronic, acr)
-  }
-  
-  ewma_coupled <- function(data, acute_period, chronic_period) {
-    acute_alpha <- 2/(acute_period+1)
-    chronic_alpha <- 2/(chronic_period+1)
-    
-    data$acute <- NA
-    data$chronic <- NA
-    
-    data$acute[1] <- data$load[1]
-    data$chronic[1] <- data$load[1]
-
-    for(i in (2:dim(data)[1])){
-      data$acute[i] <- data$load[i] * acute_alpha + (1-acute_alpha) * data$acute[i-1]
-      data$chronic[i] <- data$load[i] * chronic_alpha + (1-chronic_alpha) * data$chronic[i-1]
-    }
-    
-    data %>%
-      mutate(
-        acr = acute / chronic) %>%
-      gather(statistic, value, acute, chronic, acr)
-  }
-  
-  ewma_uncoupled <- function(data, acute_period, chronic_period) {
-    acute_alpha <- 2/(acute_period+1)
-    chronic_alpha <- 2/(chronic_period+1)
-    
-    data$acute <- NA
-    data$chronic <- NA
-    
-    data$acute[1] <- data$load[1]
-    data$chronic[1:8] <- mean(data$load[1:7])
-    
-    for(i in (2:dim(data)[1])){
-      data$acute[i] <- data$load[i] * acute_alpha + (1-acute_alpha) * data$acute[i-1]
-      if(i > 8) {
-        data$chronic[i] <- data$load[i-7] * chronic_alpha + (1-chronic_alpha) * data$chronic[i-8]
-      }
-    }
-    
-    data %>%
-      mutate(
-        acr = acute / chronic) %>%
-      gather(statistic, value, acute, chronic, acr)
-  }
+  metric_name <- reactive({
+    input$metric_name
+  })
   
   perform_analysis <- function(x) {
     analysis_type <- x
@@ -147,14 +96,16 @@ server <- function(input, output) {
     acute_period <- acute_period()
     chronic_period <- chronic_period()
     
+    metric <- metric_name()
+    
     if(analysis_type == "simple_ra_coupled") {
-      simple_rolling_average_coupled(data, acute_period, chronic_period) %>% mutate(method = analysis_type)
+      simple_rolling_average_coupled(data, metric, acute_period, chronic_period) %>% mutate(method = analysis_type)
     } else if(analysis_type == "simple_ra_uncoupled") {
-      simple_rolling_average_uncoupled(data, acute_period, chronic_period) %>% mutate(method = analysis_type)
+      simple_rolling_average_uncoupled(data, metric, acute_period, chronic_period) %>% mutate(method = analysis_type)
     } else if (analysis_type == "ewma_coupled") {
-      ewma_coupled(data, acute_period, chronic_period) %>% mutate(method = analysis_type)
+      ewma_coupled(data, metric, acute_period, chronic_period) %>% mutate(method = analysis_type)
     } else {
-      ewma_uncoupled(data, acute_period, chronic_period) %>% mutate(method = analysis_type)
+      ewma_uncoupled(data, metric, acute_period, chronic_period) %>% mutate(method = analysis_type)
     } 
   }
   
