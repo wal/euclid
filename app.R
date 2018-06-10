@@ -89,19 +89,7 @@ server <- function(input, output) {
   })
 
   metrics <- reactive({
-    metric_names <- select_if(dataset(), is.numeric) %>% names()
-    
-#    if(input$dataset == "sRPE Load (AS)") {
- #     print("Using SRPE Metric Names")
-  #    metric_names <- names(dataset())[!names(dataset()) %in% c("date", "athlete")]
-   # } else {
-  #    print("Using Statsports Metric Names")
-  #    metric_names <- names(dataset())[!names(dataset()) %in% c("Player Display Name", "Session Date")]
-  #  }
-    
-    print(paste("Using metric names: ", metric_names))
-    
-    metric_names
+    select_if(dataset(), is.numeric) %>% names()
   })
   
   athletes <- reactive({
@@ -159,7 +147,6 @@ server <- function(input, output) {
   
    output$acrPlot <- renderPlot({
      data <- analysed_data() %>% filter(statistic == 'acr')
-     print(glimpse(data))
      ggplot(data, aes(date, value, color = method)) + 
        geom_line() + 
        xlab(NULL) + ylab(NULL)+
@@ -278,7 +265,6 @@ server <- function(input, output) {
    output$raw_dataPlot <- renderPlot({
      data <- analysed_data() %>% spread(statistic, value)
      data$week <- week(data$date) %% 2
-     
      
      ggplot(data, aes_string("date", paste0("`",metric_name(),"`"), fill = "week")) + 
        geom_bar(stat = "identity") +
