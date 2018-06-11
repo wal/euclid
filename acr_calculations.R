@@ -45,12 +45,12 @@ ewma_uncoupled <- function(data, metric, acute_period, chronic_period) {
   data$chronic <- NA
   
   data$acute[1] <- data[[metric]][1]
-  data$chronic[1:8] <- mean(data[[metric]][1:7])
+  data$chronic[1:7] <- mean(data[[metric]][1:7])
   
   for(i in (2:dim(data)[1])){
     data$acute[i] <- data[[metric]][i] * acute_alpha + (1-acute_alpha) * data$acute[i-1]
-    if(i > 8) {
-      data$chronic[i] <- data[[metric]][i-7] * chronic_alpha + (1-chronic_alpha) * data$chronic[i-8]
+    if(i > 7) {
+      data$chronic[i] <- data[[metric]][i-7] * chronic_alpha + (1-chronic_alpha) * data$chronic[i-7]
     }
   }
   
