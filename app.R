@@ -80,6 +80,7 @@ server <- function(input, output) {
     if(input$dataset == "sRPE Load") {
       print("Loading from sRPE Dataset")
       data <- read_csv("data/adam_sullivan_load_data.csv")
+      
     } else {
       print("Loading Statsports Dataset")
       data <- read_csv("data/statsports.csv")
@@ -90,7 +91,20 @@ server <- function(input, output) {
 
     data
   })
-
+  
+  # Insert a 0 workload value for every metric on days when no data present for that metric
+  impute_0_on_missing_days <- function(data) {
+    athlete <- data$athlete[[1]]
+    all_dates <- data.frame(date = seq.Date(min(data$date), max(data$date), by = "day"), 
+                            athlete = athlete)
+    
+    data <- merge(all_dates, data, by = c("date","athlete"), all.x = TRUE)  
+    
+    data[is.na(data)] <- 0
+    View(data)
+    data
+  }
+  
   ## Discover what metrics are possible for a given dataset
   metrics <- reactive({
     select_if(dataset(), is.numeric) %>% names()
@@ -133,6 +147,7 @@ server <- function(input, output) {
   ##
   perform_analysis <- function(analysis_type) {
     data <- filtered_data()
+    data <- impute_0_on_missing_days(data)
     acute_period <- acute_period()
     chronic_period <- chronic_period()
     
