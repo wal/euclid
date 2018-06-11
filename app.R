@@ -53,13 +53,7 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                    withSpinner(plotOutput("chronicPlot"))
           ),
           tabPanel("Correlation",
-                   withSpinner(plotOutput("simple_ra_coupled_correlationPlot")),
-                   hr(),hr(),
-                   withSpinner(plotOutput("simple_ra_uncoupled_correlationPlot")),
-                   hr(),hr(),
-                   withSpinner(plotOutput("ewma_coupled_correlationPlot")),
-                   hr(),hr(),
-                   withSpinner(plotOutput("ewma_uncoupled_correlationPlot"))
+                   withSpinner(uiOutput("correlationPlots"))
           ),
           tabPanel("Raw Data", 
                    withSpinner(plotOutput("raw_dataPlot")),
@@ -210,84 +204,51 @@ server <- function(input, output) {
        theme(title =element_text(size=12, face='bold'))
    })
    
-   ## Correlation plot for Simple Rolling Average - Coupled
-   output$simple_ra_coupled_correlationPlot <- renderPlot({
-     data <- analysed_data() %>% 
-       filter(method == 'simple_ra_coupled') %>%
-       spread(statistic, value)
+   ## Draw the relevant number of correlation plots (depends on which analysis methods chosen)
+   output$correlationPlots <- renderUI({
      
-     plot <- ggplot(data, aes(acute, chronic, color = acr)) + 
-       ggtitle("Simpe Rolling Average - Coupled ", subtitle = "Acute v Chronic")  +
-       geom_point() +
-       geom_smooth(method = "lm", se = FALSE) +
-       stat_cor(method = "pearson") + 
-       theme_minimal() +
-       scale_colour_gradient2(guide = FALSE, high = "red", low = "yellow", mid = "white") +
-       theme(plot.title = element_text(hjust = 0.5, vjust = -0.5),
-             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5)) +
-       theme(title =element_text(size=12, face='bold'))
+     analysis_methods <- input$methods
      
-     ggMarginal(plot, type = "histogram", margins = c("y"), alpha = 0.75)
-   })
-   
-   ## Correlation plot for Simple Rolling Average - Uncoupled
-   output$simple_ra_uncoupled_correlationPlot <- renderPlot({
-     data <- analysed_data() %>% 
-       filter(method == 'simple_ra_uncoupled') %>%
-       spread(statistic, value)
+     ### Loop over the analysis methods chosen and create the relevant plot
+     plot_output_list <- lapply(analysis_methods, function(analysis_method) {
+       
+       ## Each plot must have a unique name
+       plotname <- paste("plot", analysis_method, sep=" - ")
+       
+       plot_output_object <- plotOutput(plotname)
+       
+       plot_output_object <- renderPlot({
+         
+         ## Filter the data by analysis method
+         data <- analysed_data() %>% 
+           filter(method == analysis_method) %>%
+           spread(statistic, value)
+
+         ## Correlation plot for the particular analysis method         
+         plot <- ggplot(data, aes(acute, chronic, color = acr)) + 
+           ggtitle(analysis_method, subtitle = "Acute v Chronic")  +
+           geom_point() +
+           geom_smooth(method = "lm", se = FALSE) +
+           stat_cor(method = "pearson") + 
+           theme_minimal() +
+           scale_colour_gradient2(guide = FALSE, high = "red", low = "yellow", mid = "white") +
+           theme(plot.title = element_text(hjust = 0.5, vjust = -0.5),
+                 plot.subtitle = element_text(hjust = 0.5, vjust = -0.5)) +
+           theme(title =element_text(size=12, face='bold'))
+         
+         
+         ## Add the chronic distribution as a marginal plot (using ggpub)
+         ggMarginal(plot, type = "histogram", margins = c("y"), alpha = 0.75)
+       })
+       
+       ## Add some hr() HTML elements for spacing (should be properly done in CSS)
+       list(plot_output_object, hr(), hr())
+     })
      
-     plot <- ggplot(data, aes(acute, chronic, color = acr)) + 
-       ggtitle("Simpe Rolling Average - Uncoupled ", subtitle = "Acute v Chronic")  +
-       geom_point() +
-       geom_smooth(method = "lm", se = FALSE) +
-       stat_cor(method = "pearson") + 
-       theme_minimal() +
-       scale_colour_gradient2(guide = FALSE, high = "red", low = "yellow", mid = "white") +
-       theme(plot.title = element_text(hjust = 0.5, vjust = -0.5),
-             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5)) +
-       theme(title =element_text(size=12, face='bold'))
+     do.call(tagList, plot_output_list)
      
-     ggMarginal(plot, type = "histogram", margins = c("y"), alpha = 0.75)
-   })
-   
-   ## Correlation plot for EWMA - Coupled
-   output$ewma_coupled_correlationPlot <- renderPlot({
-     data <- analysed_data() %>% 
-       filter(method == 'ewma_coupled') %>%
-       spread(statistic, value)
-     
-     plot <- ggplot(data, aes(acute, chronic, color = acr)) + 
-       ggtitle("EWMA Coupled ", subtitle = "Acute v Chronic")  +
-       geom_point() +
-       geom_smooth(method = "lm", se = FALSE) +
-       stat_cor(method = "pearson") + 
-       theme_minimal() +
-       scale_colour_gradient2(guide = FALSE, high = "red", low = "yellow", mid = "white") +
-       theme(plot.title = element_text(hjust = 0.5, vjust = -0.5),
-             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5)) +
-       theme(title =element_text(size=12, face='bold'))
-     
-     ggMarginal(plot, type = "histogram", margins = c("y"), alpha = 0.75)
-   })
-   
-   ## Correlation plot for EWMA - Uncoupled
-   output$ewma_uncoupled_correlationPlot <- renderPlot({
-     data <- analysed_data() %>% 
-       filter(method == 'ewma_uncoupled') %>%
-       spread(statistic, value)
-     
-     plot <- ggplot(data, aes(acute, chronic, color = acr)) + 
-       ggtitle("EWMA Uncoupled ", subtitle = "Acute v Chronic")  +
-       geom_point() +
-       geom_smooth(method = "lm", se = FALSE) +
-       stat_cor(method = "pearson") + 
-       theme_minimal() +
-       scale_colour_gradient2(guide = FALSE, high = "red", low = "yellow", mid = "white") +
-       theme(plot.title = element_text(hjust = 0.5, vjust = -0.5),
-             plot.subtitle = element_text(hjust = 0.5, vjust = -0.5)) +
-       theme(title =element_text(size=12, face='bold'))
-     
-     ggMarginal(plot, type = "histogram", margins = c("y"), alpha = 0.75)
+     ## Return the full list of plots and HTML elements
+     return(plot_output_list)
    })
    
    ## Raw data plot, alternative weeks are colored to show weekly differences
