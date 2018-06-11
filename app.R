@@ -101,7 +101,6 @@ server <- function(input, output) {
     data <- merge(all_dates, data, by = c("date","athlete"), all.x = TRUE)  
     
     data[is.na(data)] <- 0
-    View(data)
     data
   }
   
