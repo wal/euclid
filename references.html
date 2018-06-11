@@ -1,0 +1,102 @@
+<div class="container">
+  <h2>Data</h2>
+  <table class="table table-bordered">
+    <thead>
+    <tr>
+      <th>Dataset</th>
+      <th>file</th>
+      <th>Description</th>
+    </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>sRPE Load</td>
+        <td><a href="https://raw.githubusercontent.com/wal/euclid/master/data/adam_sullivan_load_data.csv">adam_sullivan_load_data.csv</a></td>
+        <td>A dataset nicked from <a href="https://twitter.com/adam89sullivan">Adam Sullivan's</a> excellent <a href="https://twitter.com/adam89sullivan/status/1003992609726042112">blog post</a> and excel workbook. This app is basically a R/Shiny version of Adam's work.</td>
+      </tr>
+      <tr>
+        <td>STATSports</td>
+        <td><a href="https://raw.githubusercontent.com/wal/euclid/master/data/statsports.csv">statsports.csv</a></td>
+        <td>A generated dataset in the STATSports export format. Thanks to <a href="https://twitter.com/craigmstewart">Craig Stewart</a> for the help here</td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <h4>Loading your own data</h4>
+  <p>The application is written in standard R/Shiny, its source code is publically available <a href="https://github.com/wal/euclid">here</a></p>
+  
+  <p>The application can be easily adapted to work with any data in CSV form, that has a column to represent the date, a column to represent an athlete and a series of numeric columns to represent "load". The code for reading data in is 
+  <a href"https://github.com/wal/euclid/blob/master/app.R#L81">here</a></p>
+  
+  <p>Please feel free to get in touch with me at <a href="https://twitter.com/walmc">@walmc</a> if you want help loading your data in.</p>
+</div>
+
+<div class="container">
+  <h2>Source Code & Contributions / Collaboration</h2>
+  <p>This dashboard is written in R/Shiny, its source code is publically available <a href="https://github.com/wal/euclid">here</a></p>
+  <p>It would be great to have some contributions / updates code updates by others, especially if you are learning R/shiny.</p>
+</div>
+
+<div class="container">
+  <h2>References</h2>
+  <table class="table table-bordered">
+    <tbody>
+      
+      <tr>
+        <td><a href="https://progressiveathleticperformance.com/2018/06/05/coupled-vs-uncoupled-ewma-acutechronic-spreadsheet/">COUPLED VS UNCOUPLED EWMA ACUTE:CHRONIC SPREADSHEET</a>
+        <p>Adam Sullivan</p>
+        </td>
+      </tr>
+      
+      <tr>
+        <td><a href="https://www.scienceforsport.com/acutechronic-workload-ratio/">ACUTE:CHRONIC WORKLOAD RATIO</a>
+        <p>Ryan White</p>
+        </td>
+      </tr>
+      
+      <tr>
+        <td><a href="http://complementarytraining.net/how-to-analyze-training-load-and-monitoring-data/">How to Analyze Training Load and Monitoring Data?</a>
+        <p>Mladen Jovanović</p>
+        </td>
+      </tr>
+      
+      <tr>
+        <td><a href="https://www.researchgate.net/publication/311860780_Calculating_acute_Chronic_workload_ratios_using_exponentially_weighted_moving_averages_provides_a_more_sensitive_indicator_of_injury_likelihood_than_rolling_averages">Calculating acute: Chronic workload ratios using exponentially weighted moving averages provides a more sensitive indicator of injury likelihood than rolling averages</a>
+        <p>Murray NB, Gabbett TJ, Townshend AD, Blanch P</p>
+        </td>
+      </tr>
+      
+      <tr>
+        <td><a href="http://bjsm.bmj.com/content/51/3/209">Better way to determine the acute:chronic workload ratio?</a>
+        <p>Sean Williams, Stephen West, Matthew J Cross, Keith A Stokes</p>
+        </td>
+      </tr>
+      
+      <tr>
+        <td><a href="http://bjsm.bmj.com/content/51/3/209">Mathematical coupling causes spurious correlation within the conventional acute-to-chronic workload ratio calculations</a>
+        <p>Lorenzo Lolli, Alan M Batterham, Richard Hawkins, David M Kelly, Anthony J Strudwick, Robin Thorpe, Warren Gregson, Greg Atkinson</p>
+        </td>
+      </tr>
+      
+      <tr>
+        <td><a href="http://bjsm.bmj.com/content/51/3/209">Is it all for naught? What does mathematical coupling mean for acute:chronic workload ratios?</a>
+        <p>Johann Windt, Tim J Gabbett</p>
+        </td>
+      </tr>
+      
+    </tbody>
+    </table>
+</div>
+
+
+<div class="container">
+  <h2>Thanks!</h2>
+  <p> Thanks to the following for their ideas & feedback</p>
+  <ul>
+    <li><a href="https://twitter.com/adam89sullivan">Adam Sullivan</a></li>
+    <li><a href="https://twitter.com/craigmstewart">Craig Stewart</a></li>
+    <li><a href="https://twitter.com/westy160991">Stephen West</a></li>
+    <li><a href="https://twitter.com/The_Gr8_White93">Ryan White</a></li>
+    <li><a href="https://twitter.com/TylerAbosch">Tyler Bosch</a></li>
+  </ul>
+</div>

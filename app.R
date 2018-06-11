@@ -17,7 +17,7 @@ ACR_METHODS = c("Simple Rolling Average Coupled" = "simple_ra_coupled",
                 "EWMA Coupled" = "ewma_coupled",
                 "EWMA Uncoupled" = "ewma_uncoupled")
 
-DATASETS = c("sRPE Load (AS)", "STATSports")
+DATASETS = c("sRPE Load", "STATSports")
 
 source('acr_calculations.R')
 
@@ -64,11 +64,12 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
           tabPanel("Raw Data", 
                    withSpinner(plotOutput("raw_dataPlot")),
                    dataTableOutput("raw_dataTable")),
-          tabPanel("References", p("List references here"))
+          tabPanel("Information", includeHTML("references.html"))
         )
       )
    )
 )
+
 
 ######################
 # Application Server
@@ -82,8 +83,8 @@ server <- function(input, output) {
     
     data <- NULL
     
-    if(input$dataset == "sRPE Load (AS)") {
-      print("Loading from SRPE Dataset")
+    if(input$dataset == "sRPE Load") {
+      print("Loading from sRPE Dataset")
       data <- read_csv("data/adam_sullivan_load_data.csv")
     } else {
       print("Loading Statsports Dataset")
